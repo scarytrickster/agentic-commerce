@@ -3,7 +3,7 @@ from decimal import Decimal
 from sqlalchemy import Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from database.base import Base
+from app.database.base import Base
 
 
 class Product(Base):
