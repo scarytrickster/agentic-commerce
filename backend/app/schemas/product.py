@@ -12,3 +12,8 @@ class ProductResponse(BaseModel):
     stock: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RecommendationResponse(BaseModel):
+    query: str | None
+    results: list[ProductResponse]
