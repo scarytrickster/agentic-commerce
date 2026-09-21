@@ -38,6 +38,12 @@ def test_shoes_without_price():
 def test_minimum_price():
     intent = parse_shopping_query("products above 500")
 
-    assert intent.query == "products"
+    assert intent.query == None
     assert intent.min_price == Decimal("500")
     assert intent.max_price is None
+
+def test_removes_generic_shopping_words():
+    intent = parse_shopping_query("show me products above 500")
+
+    assert intent.query is None
+    assert intent.min_price == Decimal("500")

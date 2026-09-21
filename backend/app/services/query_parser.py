@@ -49,6 +49,20 @@ def parse_shopping_query(text: str) -> ShoppingIntent:
 
     query = re.sub(r"\s+", " ", query).strip()
 
+    query = re.sub(
+        r"^(show me|show|find me|find|looking for|i want|give me)\s+",
+        "",
+        query,
+    ).strip()
+
+    query = re.sub(
+        r"\b(products|product|items|item|things)\b",
+        "",
+        query,
+    )
+
+    query = re.sub(r"\s+", " ", query).strip()
+
     if not query:
         query = None
 
