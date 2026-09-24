@@ -49,3 +49,28 @@ cross_sell_definition = {
         },
     },
 }
+
+shopping_search_definition = {
+    "type": "function",
+    "function": {
+        "name": "shopping_search",
+        "description": (
+            "Search for products based on the user's shopping request "
+            "and return relevant complementary products when available."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": (
+                        "The user's complete shopping request, "
+                        "for example 'running shoes under 4000'."
+                    ),
+                }
+            },
+            "required": ["query"],
+            "additionalProperties": False,
+        },
+    },
+}

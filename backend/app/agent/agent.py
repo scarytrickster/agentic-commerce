@@ -2,16 +2,10 @@ import json
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agent.tools import (
-    cross_sell_products_tool,
-    search_products_tool,
-)
+from app.agent.tools import shopping_search_tool
 from app.core.config import settings
 from app.llm.client import client
-from app.llm.tools import (
-    cross_sell_definition,
-    search_products_definition,
-)
+from app.llm.tools import shopping_search_definition
 
 
 async def run_agent(
@@ -21,20 +15,31 @@ async def run_agent(
     messages = [
         {
             "role": "system",
-            "content": (
+           "content": (
                 "You are a helpful shopping assistant. "
-                "Use the search_products tool when the user is "
-                "looking for products or recommendations. "
-                "Use the get_cross_sell_products tool when the user "
-                "asks for complementary or related products. "
-                "After receiving tool results, explain the relevant "
-                "products clearly and concisely. "
-                "Only state facts that are present in the tool results "
-                "or directly provided by the user. "
-                "Do not invent product features, specifications, "
-                "availability, shipping information, ratings, reviews, "
+                "Use the shopping_search tool when the user is looking for "
+                "products or recommendations. "
+                "It returns matching products and relevant complementary "
+                "products. "
+                "If the tool returns cross_sell_products, present them separately "
+                "as optional complementary products. "
+                "Do not imply that the user has selected, added, or agreed to "
+                "purchase any complementary product. "
+                "Ask whether the user wants to add any of them. "
+                "After receiving tool results, explain the products clearly "
+                "and concisely. "
+                "Only state facts explicitly present in the tool results or "
+                "directly provided by the user. "
+                "Never infer or assume product features, specifications, quality, "
+                "brand characteristics, ratings, reviews, shipping information, "
                 "or other product details. "
-                "If the tool does not provide a piece of information, "
+                "Do not describe a product as premium, budget-friendly, better, "
+                "cheaper, higher quality, or similar unless the tool results "
+                "explicitly support that statement. "
+                "Preserve the currency and prices exactly as provided by the "
+                "tool results. "
+                "Do not convert ₹ to another currency. "
+                "If information is not available in the tool results, "
                 "say that the information is not available."
             ),
         },
@@ -48,8 +53,7 @@ async def run_agent(
         model=settings.openrouter_model,
         messages=messages,
         tools=[
-            search_products_definition,
-            cross_sell_definition,
+            shopping_search_definition,
         ],
         tool_choice="auto",
     )
@@ -61,49 +65,39 @@ async def run_agent(
 
     tool_call = message.tool_calls[0]
 
+    if tool_call.function.name != "shopping_search":
+        return "I don't know how to handle that request."
+
     arguments = json.loads(tool_call.function.arguments)
 
-    if tool_call.function.name == "search_products":
-        intent, products = await search_products_tool(
-            db=db,
-            query=arguments["query"],
-        )
+    result = await shopping_search_tool(
+        db=db,
+        query=arguments["query"],
+    )
 
-        tool_result = {
-            "intent": intent.model_dump(mode="json"),
-            "products": [
-                {
-                    "id": product.id,
-                    "name": product.name,
-                    "price": str(product.price),
-                    "category": product.category,
-                    "stock": product.stock,
-                }
-                for product in products
-            ],
-        }
-
-    elif tool_call.function.name == "get_cross_sell_products":
-        products = await cross_sell_products_tool(
-            db=db,
-            category=arguments["category"],
-        )
-
-        tool_result = {
-            "products": [
-                {
-                    "id": product.id,
-                    "name": product.name,
-                    "price": str(product.price),
-                    "category": product.category,
-                    "stock": product.stock,
-                }
-                for product in products
-            ],
-        }
-
-    else:
-        return "I don't know how to handle that request."
+    tool_result = {
+        "intent": result["intent"].model_dump(mode="json"),
+        "products": [
+            {
+                "id": product.id,
+                "name": product.name,
+                "price": str(product.price),
+                "category": product.category,
+                "stock": product.stock,
+            }
+            for product in result["products"]
+        ],
+        "cross_sell_products": [
+            {
+                "id": product.id,
+                "name": product.name,
+                "price": str(product.price),
+                "category": product.category,
+                "stock": product.stock,
+            }
+            for product in result["cross_sell_products"]
+        ],
+    }
 
     messages.append(message.model_dump())
 
