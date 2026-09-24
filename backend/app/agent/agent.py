@@ -3,31 +3,42 @@ import json
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.tools import search_products_tool
+from app.core.config import settings
 from app.llm.client import client
 from app.llm.tools import search_products_definition
-from app.core.config import settings
 
 
 async def run_agent(
     db: AsyncSession,
     user_message: str,
 ):
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                        "You are a helpful shopping assistant. "
+                        "Use the search_products tool when the user is "
+                        "looking for products or recommendations. "
+                        "After receiving tool results, explain the relevant "
+                        "products clearly and concisely. "
+                        "Only state facts that are present in the tool results "
+                        "or directly provided by the user. "
+                        "Do not invent product features, specifications, "
+                        "availability, shipping information, ratings, reviews, "
+                        "or other product details. "
+                        "If the tool does not provide a piece of information, "
+                        "say that the information is not available."
+            ),
+        },
+        {
+            "role": "user",
+            "content": user_message,
+        },
+    ]
+
     response = await client.chat.completions.create(
         model=settings.openrouter_model,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a shopping assistant. "
-                    "Use the search_products tool when the user is "
-                    "looking for products or recommendations."
-                ),
-            },
-            {
-                "role": "user",
-                "content": user_message,
-            },
-        ],
+        messages=messages,
         tools=[search_products_definition],
         tool_choice="auto",
     )
@@ -49,7 +60,7 @@ async def run_agent(
         query=arguments["query"],
     )
 
-    return {
+    tool_result = {
         "intent": intent.model_dump(mode="json"),
         "products": [
             {
@@ -62,3 +73,20 @@ async def run_agent(
             for product in products
         ],
     }
+
+    messages.append(message.model_dump())
+
+    messages.append(
+        {
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": json.dumps(tool_result),
+        }
+    )
+
+    final_response = await client.chat.completions.create(
+        model=settings.openrouter_model,
+        messages=messages,
+    )
+
+    return final_response.choices[0].message.content

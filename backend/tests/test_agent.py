@@ -16,5 +16,10 @@ async def test_agent_can_search_products():
     print(result)
 
     assert result
-    assert "products" in result
-    assert result["products"]
+    assert isinstance(result, str)
+    normalized_result = " ".join(result.split())
+
+    assert "ASICS Gel-Contend 9" in normalized_result
+    assert "Adidas Runfalcon 5" in normalized_result
+    assert "3,999" in result or "3999" in result
+    assert "3,499" in result or "3499" in result
