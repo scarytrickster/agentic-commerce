@@ -4,6 +4,9 @@ pydantic-settings
 pytest
 pytest-asyncio
 httpx
+langgraph
+langfuse
+
 
 sqlalchemy
 asyncpg

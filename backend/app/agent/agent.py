@@ -1,4 +1,5 @@
 import json
+from unittest import result
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -61,7 +62,11 @@ async def run_agent(
     message = response.choices[0].message
 
     if not message.tool_calls:
-        return message.content
+        return {
+            "response": message.content,
+            "products": [],
+            "cross_sell_products": [],
+        }
 
     tool_call = message.tool_calls[0]
 
@@ -114,4 +119,26 @@ async def run_agent(
         messages=messages,
     )
 
-    return final_response.choices[0].message.content
+    return {
+        "response": final_response.choices[0].message.content,
+        "products": [
+            {
+                "id": product.id,
+                "name": product.name,
+                "price": product.price,
+                "category": product.category,
+                "stock": product.stock,
+            }
+            for product in result["products"]
+        ],
+        "cross_sell_products": [
+            {
+                "id": product.id,
+                "name": product.name,
+                "price": product.price,
+                "category": product.category,
+                "stock": product.stock,
+            }
+            for product in result["cross_sell_products"]
+        ],
+    }

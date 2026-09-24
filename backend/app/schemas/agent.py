@@ -1,13 +1,21 @@
-"""Schemas for agent interactions."""
+from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AgentRequest(BaseModel):
-    message: str
-    session_id: str | None = None
+    message: str = Field(min_length=1)
+
+
+class AgentProduct(BaseModel):
+    id: int
+    name: str
+    price: Decimal
+    category: str
+    stock: int
 
 
 class AgentResponse(BaseModel):
-    message: str
-    session_id: str | None = None
+    response: str
+    products: list[AgentProduct]
+    cross_sell_products: list[AgentProduct]
