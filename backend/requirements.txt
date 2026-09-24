@@ -11,3 +11,5 @@ alembic
 
 pwdlib 
 pyjwt
+
+openai
