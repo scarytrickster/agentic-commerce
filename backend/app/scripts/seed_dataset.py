@@ -31,6 +31,8 @@ def load_products():
 def create_description(product):
     brand = product.get("brand")
     product_type = product.get("product_type")
+    description = product.get("description")
+    keywords = product.get("keywords")
 
     parts = []
 
@@ -40,8 +42,13 @@ def create_description(product):
     if product_type:
         parts.append(f"Product type: {product_type}")
 
-    return " • ".join(parts) if parts else None
+    if description:
+        parts.append(f"Description: {description}")
 
+    if keywords:
+        parts.append(f"Keywords: {keywords}")
+
+    return " • ".join(parts) if parts else None
 
 async def seed():
     products = load_products()
