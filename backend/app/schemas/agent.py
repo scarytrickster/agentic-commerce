@@ -13,6 +13,7 @@ class AgentProduct(BaseModel):
     price: Decimal
     category: str
     stock: int
+    image_url: str | None
 
 
 class AgentResponse(BaseModel):

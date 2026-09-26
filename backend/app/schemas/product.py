@@ -10,6 +10,7 @@ class ProductResponse(BaseModel):
     price: Decimal
     category: str
     stock: int
+    image_url: str | None
 
     model_config = ConfigDict(from_attributes=True)
 

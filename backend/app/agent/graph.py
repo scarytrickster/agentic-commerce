@@ -1,3 +1,4 @@
+
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 import json
@@ -10,33 +11,38 @@ from app.llm.client import client
 from app.llm.tools import shopping_search_definition
 
 
-SYSTEM_PROMPT = (
-    "You are a helpful shopping assistant. "
-    "Use the shopping_search tool when the user is looking for "
-    "products or recommendations. "
-    "It returns matching products and relevant complementary "
-    "products. "
-    "If the tool returns cross_sell_products, present them separately "
-    "as optional complementary products. "
-    "Do not imply that the user has selected, added, or agreed to "
-    "purchase any complementary product. "
-    "Ask whether the user wants to add any of them. "
-    "After receiving tool results, explain the products clearly "
-    "and concisely. "
-    "Only state facts explicitly present in the tool results or "
-    "directly provided by the user. "
-    "Never infer or assume product features, specifications, quality, "
-    "brand characteristics, ratings, reviews, shipping information, "
-    "or other product details. "
-    "Do not describe a product as premium, budget-friendly, better, "
-    "cheaper, higher quality, or similar unless the tool results "
-    "explicitly support that statement. "
-    "Preserve the currency and prices exactly as provided by the "
-    "tool results. "
-    "Do not convert ₹ to another currency. "
-    "If information is not available in the tool results, "
-    "say that the information is not available."
-)
+SYSTEM_PROMPT = """
+You are an AI shopping assistant for an e-commerce store.
+
+Your job is to help users find products using the available shopping search tool.
+
+Rules:
+
+1. Use the shopping search tool when the user is asking to find products.
+2. Only use information returned by the tool or provided by the user.
+3. Never invent product features, ratings, reviews, discounts, shipping details, or availability.
+4. Preserve product prices exactly as returned.
+5. Keep responses short and customer-friendly.
+6. Do NOT explain your reasoning.
+7. Do NOT describe how you verified the results.
+8. Do NOT mention constraints, filters, tool calls, or system behavior.
+9. Do NOT say things like "the response correctly identifies", "price compliance",
+   "category accuracy", "stock verification", or "limit adherence".
+10. Simply tell the customer what was found.
+11. Cross-sell products may be mentioned briefly when relevant.
+12. Never imply that a product has been purchased or selected.
+
+Example:
+
+User:
+"shoes under 3000"
+
+Good response:
+"I found 4 running shoes under ₹3,000 that are currently in stock."
+
+Bad response:
+"The response correctly identifies 4 running shoes under ₹3000..."
+"""
 
 
 async def agent_node(
@@ -86,6 +92,7 @@ async def shopping_search_node(
             "price": str(product.price),
             "category": product.category,
             "stock": product.stock,
+            "image_url": product.image_url,
         }
         for product in result["products"]
     ]
@@ -97,6 +104,7 @@ async def shopping_search_node(
             "price": str(product.price),
             "category": product.category,
             "stock": product.stock,
+            "image_url": product.image_url,
         }
         for product in result["cross_sell_products"]
     ]
@@ -123,9 +131,46 @@ async def final_response_node(
     state: AgentState,
     runtime: Runtime[AgentContext],
 ):
+    product_count = len(state["products"])
+    cross_sell_count = len(state["cross_sell_products"])
+
+    final_prompt = f"""
+You are the final customer-facing response generator for an e-commerce shopping assistant.
+
+The product cards are already displayed separately in the UI.
+
+Your response must:
+- Be maximum 1-2 short sentences.
+- Do NOT list products.
+- Do NOT mention product names.
+- Do NOT mention prices.
+- Do NOT mention stock counts.
+- Do NOT include URLs or image links.
+- Do NOT use Markdown.
+- Do NOT explain your reasoning.
+- Do NOT describe tool calls or search verification.
+- Do NOT mention filters or system behavior.
+- Simply tell the customer how many matching products were found.
+- If cross-sell products exist, briefly mention that additional related products are available.
+
+Products found: {product_count}
+Related products found: {cross_sell_count}
+
+Example:
+"I found 5 watches matching your search. You can see the results below."
+
+If there are no products:
+"I couldn't find any products matching your search. Try adjusting your search."
+"""
+
     response = await client.chat.completions.create(
         model=settings.openrouter_model,
-        messages=state["messages"],
+        messages=[
+            {
+                "role": "system",
+                "content": final_prompt,
+            }
+        ],
     )
 
     message = response.choices[0].message
