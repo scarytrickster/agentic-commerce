@@ -56,3 +56,6 @@ desktop.ini
 
 # Raw Amazon Berkeley Objects dataset
 dataset/abo/
+
+qdrant_data/
+

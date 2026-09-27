@@ -8,6 +8,7 @@ httpx
 langgraph
 langfuse
 langchain
+flashrank
 
 
 sqlalchemy
@@ -18,3 +19,4 @@ pwdlib
 pyjwt
 
 openai
+qdrant-client[fastembed]
