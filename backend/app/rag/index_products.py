@@ -110,6 +110,7 @@ async def index_products():
                         "price": str(product.price),
                         "stock": product.stock,
                         "image_url": product.image_url,
+                        "description": product.description,
                     },
                 )
             )

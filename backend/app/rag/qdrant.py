@@ -10,8 +10,7 @@ client = QdrantClient(
     path=str(QDRANT_PATH),
 )
 
-COLLECTION_NAME = "products"
-
+COLLECTION_NAME = "products_jina"
 
 def close_qdrant():
     client.close()

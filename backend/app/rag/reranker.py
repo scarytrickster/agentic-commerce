@@ -1,41 +1,45 @@
-from flashrank import Ranker, RerankRequest
+from fastembed.rerank.cross_encoder import TextCrossEncoder
 
 
-ranker = Ranker()
+MODEL_NAME = "jinaai/jina-reranker-v1-turbo-en"
+
+reranker = TextCrossEncoder(model_name=MODEL_NAME)
 
 
-def rerank_products(query: str, products: list[dict], limit: int = 5):
-    passages = []
+def rerank_products(
+    query: str,
+    products: list[dict],
+    limit: int = 5,
+) -> list[dict]:
 
-    for product in products:
-        passages.append(
-            {
-                "id": product["id"],
-                "text": (
-                    f"{product['name']} "
-                    f"{product['category']}"
-                ),
-            }
+    if not products:
+        return []
+
+    passages = [
+        (
+            f"Product: {product['name']}\n"
+            f"Category: {product['category']}"
         )
+        for product in products
+    ]
 
-    request = RerankRequest(
-        query=query,
-        passages=passages,
+    scores = list(
+        reranker.rerank(
+            query=query,
+            documents=passages,
+        )
     )
 
-    results = ranker.rerank(request)
+    ranked = []
 
-    reranked = []
+    for product, score in zip(products, scores):
+        product_copy = product.copy()
+        product_copy["rerank_score"] = float(score)
+        ranked.append(product_copy)
 
-    for result in results[:limit]:
-        product = next(
-            p for p in products
-            if p["id"] == result["id"]
-        )
+    ranked.sort(
+        key=lambda product: product["rerank_score"],
+        reverse=True,
+    )
 
-        product = product.copy()
-        product["rerank_score"] = result["score"]
-
-        reranked.append(product)
-
-    return reranked
+    return ranked[:limit]
