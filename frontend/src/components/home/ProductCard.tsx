@@ -1,46 +1,44 @@
-
+import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/types/product";
-import Image from "next/image";
 
 type ProductCardProps = {
   product: Product;
 };
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const price = Number(product.price);
+
   return (
     <Link
       href={`/products/${product.id}`}
-      className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:-translate-y-1 hover:shadow-lg"
+      className="group rounded-[1.35rem] border border-stone-200/80 bg-white p-2.5 transition duration-300 hover:-translate-y-1 hover:border-stone-300 hover:shadow-xl hover:shadow-stone-900/5"
     >
-      <div className="flex h-52 items-center justify-center bg-gray-100">
+      <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[1rem] bg-[#f3f2ed]">
         {product.image_url ? (
           <Image
             src={product.image_url}
             alt={product.name}
-            width={300}
-            height={300}
-            className="h-full w-full object-contain p-4 transition group-hover:scale-105"
+            width={480}
+            height={360}
+            className="h-full w-full object-contain p-6 transition duration-500 group-hover:scale-105"
           />
         ) : (
-          <span className="text-sm text-gray-400">No image available</span>
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white text-3xl text-[#8c9a7b] shadow-sm" aria-label="No product image available">✳</div>
         )}
+        <span className="absolute left-3 top-3 rounded-full border border-white/70 bg-white/85 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-stone-600 backdrop-blur">{product.category}</span>
       </div>
 
-      <div className="space-y-2 p-4">
-        <p className="text-xs text-gray-500">{product.category}</p>
-
-        <h3 className="line-clamp-2 font-semibold text-gray-900">
-          {product.name}
-        </h3>
-
-        <p className="font-bold text-gray-900">
-          ₹{Number(product.price).toLocaleString("en-IN")}
-        </p>
-
-        <p className="text-xs text-gray-500">
-          {product.stock > 0 ? "In stock" : "Out of stock"}
-        </p>
+      <div className="px-2 pb-2 pt-4">
+        <h3 className="line-clamp-2 min-h-11 text-sm font-medium leading-5 text-[#27372e]">{product.name}</h3>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="text-base font-semibold tracking-tight text-[#20342b]">
+            {Number.isFinite(price) ? `₹${price.toLocaleString("en-IN")}` : product.price}
+          </p>
+          <span className={`text-[11px] font-medium ${product.stock > 0 ? "text-[#63805d]" : "text-stone-400"}`}>
+            {product.stock > 0 ? "Ready to ship" : "Out of stock"}
+          </span>
+        </div>
       </div>
     </Link>
   );

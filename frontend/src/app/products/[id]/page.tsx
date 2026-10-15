@@ -1,82 +1,60 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/layout/header";
-import type { Product } from "@/types/product";
 import ProductDetails from "@/components/products/ProductDetails";
-
-const API_URL = "http://127.0.0.1:8000";
+import ProductGrid from "@/components/home/ProductGrid";
+import type { Product } from "@/types/product";
+import { apiFetch } from "@/lib/api";
 
 export default function ProductDetailsPage() {
-  const params = useParams();
-  const id = params.id as string;
-
+  const params = useParams<{ id: string }>();
+  const id = params.id;
   const [product, setProduct] = useState<Product | null>(null);
+  const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function fetchProduct() {
-      try {
-        const response = await fetch(`${API_URL}/products`);
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch products");
-        }
-
-        const products: Product[] = await response.json();
-        const selectedProduct = products.find(
-          (item) => item.id === Number(id)
-        );
-
-        if (!selectedProduct) {
-          setError("Product not found");
-          return;
-        }
-
-        setProduct(selectedProduct);
-      } catch {
-        setError("Unable to load product. Please try again.");
-      } finally {
-        setLoading(false);
-      }
+  const fetchProduct = useCallback(async () => {
+    await Promise.resolve();
+    const productId = Number(id);
+    if (!Number.isInteger(productId) || productId < 1) {
+      setError("Product not found.");
+      setLoading(false);
+      return;
     }
-
-    if (id) fetchProduct();
+    try {
+      const selectedProduct = await apiFetch<Product>(`/products/${productId}`);
+      setProduct(selectedProduct);
+      try {
+        const params = new URLSearchParams({ category: selectedProduct.category, limit: "5" });
+        const recommendations = await apiFetch<{ results: Product[] }>(`/products/recommendations?${params}`);
+        setRelated(recommendations.results.filter((item) => item.id !== selectedProduct.id).slice(0, 4));
+      } catch {
+        setRelated([]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load this product.");
+      setProduct(null);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => void fetchProduct(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchProduct]);
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <Header />
-
-      {loading ? (
-        <div className="py-24 text-center text-gray-600">
-          Loading product...
-        </div>
-      ) : error || !product ? (
-        <div className="py-24 text-center">
-          <p className="text-gray-700">
-            {error || "Product not found"}
-          </p>
-          <Link href="/" className="mt-4 inline-block text-blue-600">
-            Back to products
-          </Link>
-        </div>
-      ) : (
-        <main className="mx-auto max-w-7xl px-6 py-10">
-          <Link
-            href="/"
-            className="mb-8 inline-flex items-center gap-2 text-sm text-gray-500 transition hover:text-black"
-          >
-            ← Back to products
-          </Link>
-
-          <ProductDetails product={product} />
-        </main>
-      )}
+    <div className="min-h-screen bg-[#fbfaf7] text-[#20342b]"><Header />
+      <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
+        <Link href="/#shop" className="mb-6 inline-flex text-sm text-stone-500 transition hover:text-[#20342b]">← Back to the collection</Link>
+        {loading ? <div className="grid gap-8 md:grid-cols-2"><div className="aspect-square animate-pulse rounded-[2rem] bg-stone-200/70" /><div className="h-96 animate-pulse rounded-[2rem] bg-stone-200/70" /></div> : error || !product ? <div role="alert" className="rounded-[1.75rem] border border-stone-200 bg-white p-10 text-center"><p className="text-stone-600">{error || "Product not found."}</p><button onClick={() => { setLoading(true); setError(""); void fetchProduct(); }} className="mt-4 font-semibold text-[#526c4e] underline">Try again</button></div> : <ProductDetails product={product} />}
+        {!loading && product && related.length > 0 && <section className="mt-16"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#78916c]">More to explore</p><h2 className="mt-2 text-3xl font-semibold tracking-tight">You may also like</h2><div className="mt-6"><ProductGrid products={related} loading={false} /></div></section>}
+      </main>
     </div>
   );
 }
