@@ -13,5 +13,8 @@ async def test_cross_sell_running_shoes():
         )
 
     assert products
-    assert all(product.category == "Accessories" for product in products)
+    assert all(
+        product.category == "Bags & Accessories"
+        for product in products
+    )
     assert all(product.stock > 0 for product in products)

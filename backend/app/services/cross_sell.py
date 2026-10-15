@@ -5,7 +5,7 @@ from app.models.product import Product
 
 
 CROSS_SELL_CATEGORIES = {
-    "running shoes": ["Accessories"],
+    "running shoes": ["Bags & Accessories"],
 }
 
 

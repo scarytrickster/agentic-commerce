@@ -20,17 +20,22 @@ async def test_agent_can_search_products():
     assert result["products"]
     assert result["cross_sell_products"]
 
-    product_names = [
-        product["name"]
+    assert all(
+        product["category"] == "Running Shoes"
         for product in result["products"]
-    ]
+    )
 
-    assert "ASICS Gel-Contend 9" in product_names
-    assert "Adidas Runfalcon 5" in product_names
+    assert all(
+        float(product["price"]) <= 4000
+        for product in result["products"]
+    )
 
-    cross_sell_names = [
-        product["name"]
+    assert all(
+        product["stock"] > 0
+        for product in result["products"]
+    )
+
+    assert all(
+        product["category"] == "Bags & Accessories"
         for product in result["cross_sell_products"]
-    ]
-
-    assert "Running Waist Bag" in cross_sell_names
+    )

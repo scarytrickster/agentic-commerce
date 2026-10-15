@@ -58,3 +58,55 @@ async def recommend_products(
     result = await db.execute(statement)
 
     return list(result.scalars().all())
+
+async def get_products_by_ids(
+    db: AsyncSession,
+    product_ids: list[int],
+    category: str | None = None,
+    min_price: Decimal | None = None,
+    max_price: Decimal | None = None,
+    in_stock: bool = True,
+) -> list[Product]:
+    if not product_ids:
+        return []
+
+    statement = select(Product).where(
+        Product.id.in_(product_ids)
+    )
+
+    if category:
+        category_term = f"%{category.strip()}%"
+        statement = statement.where(
+            Product.category.ilike(category_term)
+        )
+
+    if min_price is not None:
+        statement = statement.where(
+            Product.price >= min_price
+        )
+
+    if max_price is not None:
+        statement = statement.where(
+            Product.price <= max_price
+        )
+
+    if in_stock:
+        statement = statement.where(
+            Product.stock > 0
+        )
+
+    result = await db.execute(statement)
+
+    products = list(result.scalars().all())
+
+    # Restore Qdrant's relevance order
+    product_map = {
+        product.id: product
+        for product in products
+    }
+
+    return [
+        product_map[product_id]
+        for product_id in product_ids
+        if product_id in product_map
+    ]

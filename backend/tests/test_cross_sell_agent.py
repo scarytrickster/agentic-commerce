@@ -28,6 +28,6 @@ async def test_agent_returns_cross_sell_products():
     )
 
     assert all(
-        product["category"] == "Accessories"
+        product["category"] == "Bags & Accessories"
         for product in result["cross_sell_products"]
     )

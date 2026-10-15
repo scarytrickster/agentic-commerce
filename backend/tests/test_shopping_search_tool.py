@@ -1,3 +1,5 @@
+from unittest import result
+
 import pytest
 
 from app.agent.tools import shopping_search_tool
@@ -21,6 +23,6 @@ async def test_shopping_search_tool():
     )
 
     assert all(
-        product.category == "Accessories"
+        product.category == "Bags & Accessories"
         for product in result["cross_sell_products"]
     )

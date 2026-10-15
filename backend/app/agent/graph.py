@@ -167,7 +167,7 @@ If there are no products:
         model=settings.openrouter_model,
         messages=[
             {
-                "role": "system",
+                "role": "user",
                 "content": final_prompt,
             }
         ],
